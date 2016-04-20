@@ -12,9 +12,48 @@
     </head>
     <body>
 
+<select id="select" onchange="zoomToBookmark()">
+</select>
         <div id="mapid"></div>
 
         <script>
+            var _aois;
+            
+            function zoomToBookmark(){
+                var s=document.getElementById('select');
+                var aoi= _aois.payload[s.selectedIndex];
+                var geom = aoi.geometry;
+                var polygon = L.geoJson(geom);
+                map.fitBounds(polygon.getBounds());
+            }
+
+            function getAois(callback){
+                var aoiUrl='https://api.urthecast.com/v1/consumers/apps/me/aois?'+
+                "api_key=" + api_key + 
+                "&api_secret=" + api_secret;
+                var request = new XMLHttpRequest();
+                request.open('GET', aoiUrl, true);
+                request.onload = function () {
+                    if (request.status >= 200 && request.status < 400) {
+                        var data = JSON.parse(request.responseText);
+                        callback(data);
+                    }
+                };
+                request.send();
+            }
+            
+            getAois(function (aois){
+                _aois=aois;
+                var s=document.getElementById('select');
+                
+                var amount = aois.payload.length;
+                for(var i=0;i<amount;i++){
+                    var option = document.createElement("option");
+                    option.text=aois.payload[i].name;
+                    s.add(option);                    
+                }
+            })
+            
             var map = L.map('mapid').setView([-20, -60], 4);
             var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
             var osmAttrib='Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors';
@@ -25,13 +64,14 @@
             var renderer="rgb";
             
             // 	Average percentage of cloud coverage throughout the entire scene; calculated from its cloud mask
-            var cloud_coverage=20; 
+            var cloud_coverage=50; 
             
             // platforms: iss, landsat-8, deimos-1
             var platform = "landsat-8";
+            //var platform = "deimos-1";
             
-            var acquired_gte="2016-03-06T12:00:00.000Z";
-            var acquired_lte="2016-04-06T12:00:00.000Z";
+            var acquired_gte="2016-04-01T12:00:00.000Z";
+            var acquired_lte="2016-04-19T12:00:00.000Z";
             
             var urthecasturl="http://tile-{s}.urthecast.com/v1/" + renderer + "/{z}/{x}/{y}?" +
                 "api_key=" + api_key + 
